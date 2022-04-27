@@ -1,0 +1,8 @@
+version: "3"
+services:
+  app:
+    container_name: sample_problem
+    image: asia-northeast1-docker.pkg.dev/cpctf-338715/problem/sample_problem:latest
+    ports:
+      - "${PORT_SAMPLE_PROBLEM}:22"
+    restart: always
