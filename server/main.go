@@ -40,6 +40,11 @@ func main() {
 		panic(err)
 	}
 
+	sessionSecret, ok := os.LookupEnv("SESSION_SECRET")
+	if !ok {
+		panic("SESSION_SECRET is not set")
+	}
+
 	staticRoot, ok := os.LookupEnv("STATIC_ROOT")
 	if !ok {
 		panic("STATIC_ROOT is not set")
@@ -47,10 +52,10 @@ func main() {
 
 	addr, ok := os.LookupEnv("APP_ADDR")
 	if !ok {
-		panic("DB_PORT is not set")
+		panic("APP_ADDR is not set")
 	}
 
-	err = startServer(addr, staticRoot)
+	err = startServer(addr, staticRoot, sessionSecret)
 	if err != nil {
 		panic(err)
 	}

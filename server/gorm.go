@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"gorm.io/driver/mysql"
@@ -36,4 +37,18 @@ func dbInit(
 	}
 
 	return nil
+}
+
+func createUser(ctx context.Context, user *User) error {
+	return db.Create(user).Error
+}
+
+func getUserByName(ctx context.Context, userName string) (*User, error) {
+	var user User
+	err := db.First(&user, User{Name: userName}).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
