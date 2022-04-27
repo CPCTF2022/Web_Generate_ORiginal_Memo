@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
@@ -23,8 +25,18 @@ func startServer(addr string, static string, sessionSecret string) error {
 	store := sessions.NewCookieStore([]byte(sessionSecret))
 	e.Use(session.Middleware(store))
 
-	e.POST("/signup", signup)
-	e.POST("/login", login)
+	apiGroup := e.Group("/api")
+	{
+		apiGroup.POST("/signup", signup)
+		apiGroup.POST("/login", login)
+
+		memoGroup := apiGroup.Group("/memos")
+		{
+			memoGroup.POST("", postMemo)
+			memoGroup.GET("", getAllMemos)
+			memoGroup.GET("/:memoID", getMemoByID)
+		}
+	}
 
 	return e.Start(addr)
 }
@@ -60,13 +72,16 @@ func login(c echo.Context) error {
 	}
 
 	user, err := getUserByName(c.Request().Context(), reqUser.Name)
+	if errors.Is(err, errNoUser) {
+		return echo.NewHTTPError(http.StatusUnauthorized, "invalid user")
+	}
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user")
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.HashedPassword), []byte(reqUser.Password))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "invalid password")
+		return echo.NewHTTPError(http.StatusUnauthorized, "invalid user")
 	}
 
 	session, err := store.Get(c.Request(), "session")
@@ -83,4 +98,73 @@ func login(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusOK)
+}
+
+func postMemo(c echo.Context) error {
+	var reqMemo Memo
+	err := c.Bind(&reqMemo)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+	}
+
+	session, err := store.Get(c.Request(), "session")
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get session")
+	}
+
+	userID, ok := session.Values["userID"]
+	if !ok {
+		return echo.NewHTTPError(http.StatusUnauthorized, "not logged in")
+	}
+
+	reqMemo.ID = uuid.New().String()
+	reqMemo.UserID, ok = userID.(string)
+	if !ok {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user id")
+	}
+	reqMemo.CreatedAt = time.Now()
+
+	err = createMemo(c.Request().Context(), &reqMemo)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to create memo")
+	}
+
+	return c.JSON(http.StatusCreated, reqMemo)
+}
+
+func getAllMemos(c echo.Context) error {
+	session, err := store.Get(c.Request(), "session")
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get session")
+	}
+
+	iUserID, ok := session.Values["userID"]
+	if !ok {
+		return echo.NewHTTPError(http.StatusUnauthorized, "not logged in")
+	}
+	userID, ok := iUserID.(string)
+	if !ok {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user id")
+	}
+
+	memos, err := getMemos(c.Request().Context(), userID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get memos")
+	}
+
+	return c.JSON(http.StatusOK, memos)
+}
+
+func getMemoByID(c echo.Context) error {
+	memoID := c.Param("memoID")
+
+	memo, err := getMemo(c.Request().Context(), memoID)
+	if errors.Is(err, errNoMemo) {
+		return echo.NewHTTPError(http.StatusNotFound, "no memo")
+	}
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get memo")
+	}
+
+	return c.JSON(http.StatusOK, memo)
 }
