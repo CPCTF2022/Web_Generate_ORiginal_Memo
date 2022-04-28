@@ -45,12 +45,16 @@ func dbInit(
 }
 
 func createUser(ctx context.Context, user *User) error {
-	return db.Create(user).Error
+	return db.
+		WithContext(ctx).
+		Create(user).Error
 }
 
 func getUserByName(ctx context.Context, userName string) (*User, error) {
 	var user User
-	err := db.First(&user, User{Name: userName}).Error
+	err := db.
+		WithContext(ctx).
+		First(&user, User{Name: userName}).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, errNoUser
 	}
@@ -62,12 +66,16 @@ func getUserByName(ctx context.Context, userName string) (*User, error) {
 }
 
 func createMemo(ctx context.Context, memo *Memo) error {
-	return db.Create(memo).Error
+	return db.
+		WithContext(ctx).
+		Create(memo).Error
 }
 
 func getMemos(ctx context.Context, userID string) ([]Memo, error) {
 	var memos []Memo
-	err := db.Find(&memos, Memo{UserID: userID}).Error
+	err := db.
+		WithContext(ctx).
+		Find(&memos, Memo{UserID: userID}).Error
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +85,9 @@ func getMemos(ctx context.Context, userID string) ([]Memo, error) {
 
 func getMemo(ctx context.Context, memoID string) (*Memo, error) {
 	var memo Memo
-	err := db.First(&memo, memoID).Error
+	err := db.
+		WithContext(ctx).
+		First(&memo, memoID).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, errNoMemo
 	}
