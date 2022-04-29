@@ -71,7 +71,7 @@ func createMemo(ctx context.Context, memo *Memo) error {
 		Create(memo).Error
 }
 
-func getMemos(ctx context.Context, userID string) ([]Memo, error) {
+func getMemos(ctx context.Context, userID int) ([]Memo, error) {
 	var memos []Memo
 	err := db.
 		WithContext(ctx).

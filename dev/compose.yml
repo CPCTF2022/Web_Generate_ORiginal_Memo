@@ -6,7 +6,8 @@ services:
       dockerfile: ../dev/server.Dockerfile
     restart: always
     volumes:
-      - ../server:/go/src/github.com/mazrean/one-poll
+      - ../server:/go/src/github.com/CPCTF2022/Web_Generate_ORiginal_Memo/server
+      - ../client:/go/src/github.com/CPCTF2022/Web_Generate_ORiginal_Memo/client
     environment:
       DB_USERNAME: root
       DB_PASSWORD: pass
@@ -14,8 +15,8 @@ services:
       DB_PORT: 3306
       DB_DATABASE: memo
       SESSION_SECRET: secret
-      STATIC_ROOT: ./
-      ADDR: :3000
+      STATIC_ROOT: ../client/build
+      APP_ADDR: :3000
     ports: 
       - 3000:3000
   mariadb:

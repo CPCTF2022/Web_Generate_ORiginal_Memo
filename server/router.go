@@ -3,9 +3,9 @@ package main
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
@@ -20,15 +20,26 @@ func startServer(addr string, static string, sessionSecret string) error {
 
 	e.Use(middleware.Recover())
 	e.Use(middleware.Logger())
-	e.Use(middleware.Static(static))
+	e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
+		Root:  static,
+		HTML5: true,
+		Skipper: func(c echo.Context) bool {
+			return strings.HasPrefix(c.Request().URL.Path, "/api")
+		},
+	}))
 
-	store := sessions.NewCookieStore([]byte(sessionSecret))
+	store = sessions.NewCookieStore([]byte(sessionSecret))
 	e.Use(session.Middleware(store))
 
 	apiGroup := e.Group("/api")
 	{
 		apiGroup.POST("/signup", signup)
 		apiGroup.POST("/login", login)
+
+		usersGroup := apiGroup.Group("/users")
+		{
+			usersGroup.GET("/me", getMe)
+		}
 
 		memoGroup := apiGroup.Group("/memos")
 		{
@@ -42,26 +53,41 @@ func startServer(addr string, static string, sessionSecret string) error {
 }
 
 func signup(c echo.Context) error {
-	var reqUser User
-	err := c.Bind(&reqUser)
+	var user User
+	err := c.Bind(&user)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(reqUser.Password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to generate hashed password")
 	}
 
-	reqUser.ID = uuid.New().String()
-	reqUser.HashedPassword = string(hashedPassword)
+	user.HashedPassword = string(hashedPassword)
 
-	err = createUser(c.Request().Context(), &reqUser)
+	err = createUser(c.Request().Context(), &user)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to create user")
 	}
 
-	return c.JSON(http.StatusCreated, reqUser)
+	session, err := store.Get(c.Request(), "session")
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get session")
+	}
+
+	session.Values["userID"] = user.ID
+	session.Values["userName"] = user.Name
+
+	err = session.Save(c.Request(), c.Response())
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to save session")
+	}
+
+	user.Password = ""
+	user.HashedPassword = ""
+
+	return c.JSON(http.StatusCreated, user)
 }
 
 func login(c echo.Context) error {
@@ -97,7 +123,40 @@ func login(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to save session")
 	}
 
-	return c.NoContent(http.StatusOK)
+	user.Password = ""
+	user.HashedPassword = ""
+
+	return c.JSON(http.StatusOK, user)
+}
+
+func getMe(c echo.Context) error {
+	session, err := store.Get(c.Request(), "session")
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get session")
+	}
+
+	iUserID, ok := session.Values["userID"]
+	if !ok {
+		return echo.NewHTTPError(http.StatusUnauthorized, "not logged in")
+	}
+	userID, ok := iUserID.(int)
+	if !ok {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user id")
+	}
+
+	iUserName, ok := session.Values["userName"]
+	if !ok {
+		return echo.NewHTTPError(http.StatusUnauthorized, "not logged in")
+	}
+	userName, ok := iUserName.(string)
+	if !ok {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user name")
+	}
+
+	return c.JSON(http.StatusOK, User{
+		ID:   userID,
+		Name: userName,
+	})
 }
 
 func postMemo(c echo.Context) error {
@@ -117,8 +176,7 @@ func postMemo(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "not logged in")
 	}
 
-	reqMemo.ID = uuid.New().String()
-	reqMemo.UserID, ok = userID.(string)
+	reqMemo.UserID, ok = userID.(int)
 	if !ok {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user id")
 	}
@@ -142,7 +200,7 @@ func getAllMemos(c echo.Context) error {
 	if !ok {
 		return echo.NewHTTPError(http.StatusUnauthorized, "not logged in")
 	}
-	userID, ok := iUserID.(string)
+	userID, ok := iUserID.(int)
 	if !ok {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user id")
 	}
