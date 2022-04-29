@@ -17,6 +17,8 @@ services:
       SESSION_SECRET: secret
       STATIC_ROOT: ../client/build
       APP_ADDR: :3000
+      FLAG: flag
+      ADMIN_PASSWORD: admin
     ports: 
       - 3000:3000
   mariadb:

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -16,6 +17,8 @@ var (
 )
 
 func dbInit(
+	flag string,
+	adminPassword string,
 	user string,
 	password string,
 	host string,
@@ -39,6 +42,32 @@ func dbInit(
 	err = db.AutoMigrate(&User{}, &Memo{})
 	if err != nil {
 		return fmt.Errorf("failed to auto migrate: %w", err)
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(adminPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("failed to generate hashed password: %w", err)
+	}
+	admin := User{
+		Name:           "admin",
+		HashedPassword: string(hashedPassword),
+	}
+	err = db.
+		Session(&gorm.Session{}).
+		FirstOrCreate(&admin, "`name` = \"admin\"").Error
+	if err != nil {
+		return fmt.Errorf("failed to create admin user: %w", err)
+	}
+
+	err = db.
+		Session(&gorm.Session{}).
+		Where("user_id = ?", admin.ID).
+		FirstOrCreate(&Memo{
+			UserID:  admin.ID,
+			Content: flag,
+		}).Error
+	if err != nil {
+		return fmt.Errorf("failed to create admin memo: %w", err)
 	}
 
 	return nil

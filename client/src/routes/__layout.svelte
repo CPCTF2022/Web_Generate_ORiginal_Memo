@@ -27,14 +27,16 @@
   export let status: number;
   export let userInfo: User;
 
-  if (status === 200 && userInfo) {
-    user.set(userInfo);
-  }
-
-  let path: string;
+  let path: string = "";
   page.subscribe((value) => {
     path = value.url.pathname;
   });
+
+  if (status === 200 && userInfo) {
+    user.set(userInfo);
+  } else if (path && path !== "/signup") {
+    goto("/login");
+  }
 </script>
 
 <Nav {path} user={userInfo} />

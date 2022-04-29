@@ -1,8 +1,29 @@
 version: "3"
 services:
-  app:
-    container_name: sample_problem
-    image: asia-northeast1-docker.pkg.dev/cpctf-338715/problem/sample_problem:latest
+  app_1:
+    container_name: web_generate_original_memo_1_app
+    image: asia-northeast1-docker.pkg.dev/cpctf-338715/problem/web_generate_original_memo-1:latest
+    #build:
+    #  context: ./
+    #  dockerfile: ./Dockerfile
+    environment:
+      DB_USERNAME: root
+      DB_PASSWORD: 9MH5urvhRnDrR18T7wh5
+      DB_HOSTNAME: db_1
+      DB_PORT: 3306
+      DB_DATABASE: gorm_1
+      SESSION_SECRET: TLxDYhEjz69j
+      STATIC_ROOT: dist
+      APP_ADDR: :3000
+      FLAG: CPCTF{80rm_in1in5_c0n6it1on}
+      ADMIN_PASSWORD: bZVK5Aq4sw2OS1HOOKmz
     ports:
-      - "${PORT_SAMPLE_PROBLEM}:22"
+      - "${PORT_WEB_GENERATE_ORIGINAL_MEMO}:3000"
     restart: always
+  db_1:
+    container_name: web_generate_original_memo_1_db
+    image: mariadb:10.6.4
+    environment:
+      MYSQL_ROOT_PASSWORD: 9MH5urvhRnDrR18T7wh5
+      MYSQL_DATABASE: gorm_1
+      TZ: Asia/Tokyo

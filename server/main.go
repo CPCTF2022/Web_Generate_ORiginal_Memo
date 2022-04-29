@@ -6,6 +6,16 @@ import (
 )
 
 func main() {
+	flag, ok := os.LookupEnv("FLAG")
+	if !ok {
+		panic("FLAG is not set")
+	}
+
+	adminPassword, ok := os.LookupEnv("ADMIN_PASSWORD")
+	if !ok {
+		panic("ADMIN_PASSWORD is not set")
+	}
+
 	user, ok := os.LookupEnv("DB_USERNAME")
 	if !ok {
 		panic("DB_USERNAME is not set")
@@ -35,7 +45,7 @@ func main() {
 		panic("DB_DATABASE is not set")
 	}
 
-	err = dbInit(user, pass, host, DBPort, database)
+	err = dbInit(flag, adminPassword, user, pass, host, DBPort, database)
 	if err != nil {
 		panic(err)
 	}
