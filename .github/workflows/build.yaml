@@ -30,8 +30,8 @@ jobs:
           context: .
           push: true
           tags: |
-            asia-northeast1-docker.pkg.dev/cpctf-338715/problem/${{env.REPO_NAME}}:${{env.TAG}}
-            asia-northeast1-docker.pkg.dev/cpctf-338715/problem/${{env.REPO_NAME}}:latest
+            asia-northeast1-docker.pkg.dev/cpctf-338715/problem/${{env.REPO_NAME}}-1:${{env.TAG}}
+            asia-northeast1-docker.pkg.dev/cpctf-338715/problem/${{env.REPO_NAME}}-1:latest
   push-config:
     name: Push Config
     runs-on: ubuntu-latest
