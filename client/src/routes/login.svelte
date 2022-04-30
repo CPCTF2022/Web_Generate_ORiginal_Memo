@@ -14,7 +14,7 @@
       body: JSON.stringify(event.detail),
     });
     if (response.status === 200) {
-      const userInfo: User = await response.json();
+      const userInfo: User = (await response.json()).user;
       if (userInfo) {
         user.set(userInfo);
       }
