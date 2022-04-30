@@ -4,22 +4,28 @@
 	import type { User } from '../domain/user';
 	export let path: string;
 	export let user: User | null;
+
+  console.log(user);
 </script>
 
 <nav>
 	<div class="mdc-typography--headline2 title">Generate ORiginal Memo</div>
 	{#if !user}
 		<div style="text-align: right;">
-			{#if path !== 'login'}
+			{#if path !== '/login'}
 				<Button on:click={() => goto('/login')}>
 					<Label>Login</Label>
 				</Button>
 			{/if}
-			{#if path !== 'signup'}
+			{#if path !== '/signup'}
 				<Button on:click={() => goto('/signup')}>
 					<Label>Signup</Label>
 				</Button>
 			{/if}
+		</div>
+  {:else}
+		<div style="text-align: right;">
+      <div>{user.name}</div>
 		</div>
 	{/if}
 </nav>

@@ -46,7 +46,7 @@
     }
   };
 
-  let userInfo: User;
+  let userInfo: User| null = null;
   user.subscribe((value) => {
     userInfo = value ?? userInfo;
   });

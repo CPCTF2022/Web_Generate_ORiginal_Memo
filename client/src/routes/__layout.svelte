@@ -7,10 +7,14 @@
       },
     });
 
+    let userInfo: User| null = null;
+    if (res.status == 200) {
+      userInfo = await res.json();
+    }
+
     return {
       props: {
-        status: res.status,
-        userInfo: await res.json(),
+        userInfo,
       },
     };
   }
@@ -24,22 +28,26 @@
   import type { User } from "../domain/user";
   import { user } from "../store";
 
-  export let status: number;
-  export let userInfo: User;
+  export let userInfo: User|null;
 
   let path: string = "";
   page.subscribe((value) => {
     path = value.url.pathname;
   });
 
-  if (status === 200 && userInfo) {
+  if (userInfo) {
     user.set(userInfo);
   } else if (path && path !== "/signup") {
     goto("/login");
   }
+
+  let userValue: User|null = null;
+  user.subscribe((value) => {
+    userValue = value ?? userValue;
+  });
 </script>
 
-<Nav {path} user={userInfo} />
+<Nav {path} user={userValue} />
 
 <main>
   <slot />
