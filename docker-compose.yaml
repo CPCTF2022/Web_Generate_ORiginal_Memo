@@ -2,7 +2,7 @@ version: "3"
 services:
   app_1:
     container_name: web_generate_original_memo_1_app
-    image: asia-northeast1-docker.pkg.dev/cpctf-338715/problem/cpctf2022/web_generate_original_memo:latest
+    image: asia-northeast1-docker.pkg.dev/cpctf-338715/problem/cpctf2022/web_generate_original_memo-1:latest
     #build:
     #  context: ./
     #  dockerfile: ./Dockerfile
