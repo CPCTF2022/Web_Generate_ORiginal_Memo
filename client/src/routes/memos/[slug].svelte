@@ -9,7 +9,7 @@
       },
     });
 
-    const memo: Memo = await res.json();
+    const memo: Memo = (await res.json()).memo;
     return {
       props: {
         memo,

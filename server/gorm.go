@@ -79,19 +79,23 @@ func createUser(ctx context.Context, user *User) error {
 		Create(user).Error
 }
 
-func getUserByName(ctx context.Context, userName string) (*User, error) {
+func getUserByName(ctx context.Context, userName string) (*User, string, error) {
 	var user User
-	err := db.
+	db := db.
 		WithContext(ctx).
-		First(&user, User{Name: userName}).Error
+		Where("name = ?", userName)
+	query := db.ToSQL(func(db *gorm.DB) *gorm.DB {
+		return db.First(&user)
+	})
+	err := db.First(&user).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, errNoUser
+		return nil, query, errNoUser
 	}
 	if err != nil {
-		return nil, err
+		return nil, query, err
 	}
 
-	return &user, nil
+	return &user, query, nil
 }
 
 func createMemo(ctx context.Context, memo *Memo) error {
@@ -100,29 +104,38 @@ func createMemo(ctx context.Context, memo *Memo) error {
 		Create(memo).Error
 }
 
-func getMemos(ctx context.Context, userID int) ([]Memo, error) {
+func getMemos(ctx context.Context, userID int) ([]Memo, string, error) {
 	var memos []Memo
-	err := db.
+	db := db.
 		WithContext(ctx).
-		Find(&memos, Memo{UserID: userID}).Error
+		Where("user_id = ?", userID)
+	query := db.ToSQL(func(db *gorm.DB) *gorm.DB {
+		return db.Find(&memos)
+	})
+	err := db.Find(&memos).Error
 	if err != nil {
-		return nil, err
+		return nil, query, err
 	}
 
-	return memos, nil
+	return memos, query, nil
 }
 
-func getMemo(ctx context.Context, memoID string) (*Memo, error) {
+func getMemo(ctx context.Context, memoID string, userID int) (*Memo, string, error) {
 	var memo Memo
-	err := db.
+	db := db.
 		WithContext(ctx).
-		First(&memo, memoID).Error
+		Where(memoID).
+		Where("user_id = ?", userID)
+	query := db.ToSQL(func(db *gorm.DB) *gorm.DB {
+		return db.First(&memo)
+	})
+	err := db.First(&memo).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, errNoMemo
+		return nil, query, errNoMemo
 	}
 	if err != nil {
-		return nil, err
+		return nil, query, err
 	}
 
-	return &memo, nil
+	return &memo, query, nil
 }

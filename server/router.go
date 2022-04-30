@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -90,6 +91,11 @@ func signup(c echo.Context) error {
 	return c.JSON(http.StatusCreated, user)
 }
 
+type UserWithQuery struct {
+	User  *User  `json:"user"`
+	Query string `json:"query"`
+}
+
 func login(c echo.Context) error {
 	var reqUser User
 	err := c.Bind(&reqUser)
@@ -97,12 +103,12 @@ func login(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
 	}
 
-	user, err := getUserByName(c.Request().Context(), reqUser.Name)
+	user, query, err := getUserByName(c.Request().Context(), reqUser.Name)
 	if errors.Is(err, errNoUser) {
-		return echo.NewHTTPError(http.StatusUnauthorized, "invalid user")
+		return echo.NewHTTPError(http.StatusUnauthorized, fmt.Sprintf("invalid user: %s", query))
 	}
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user")
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("failed to get user(%s): %s", err, query))
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.HashedPassword), []byte(reqUser.Password))
@@ -126,7 +132,10 @@ func login(c echo.Context) error {
 	user.Password = ""
 	user.HashedPassword = ""
 
-	return c.JSON(http.StatusOK, user)
+	return c.JSON(http.StatusOK, UserWithQuery{
+		User:  user,
+		Query: query,
+	})
 }
 
 func getMe(c echo.Context) error {
@@ -190,6 +199,11 @@ func postMemo(c echo.Context) error {
 	return c.JSON(http.StatusCreated, reqMemo)
 }
 
+type MemosWithQuery struct {
+	Memos []Memo `json:"memos"`
+	Query string `json:"query"`
+}
+
 func getAllMemos(c echo.Context) error {
 	session, err := store.Get(c.Request(), "session")
 	if err != nil {
@@ -205,24 +219,49 @@ func getAllMemos(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user id")
 	}
 
-	memos, err := getMemos(c.Request().Context(), userID)
+	memos, query, err := getMemos(c.Request().Context(), userID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get memos")
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("failed to get memos(%s): %s", err, query))
 	}
 
-	return c.JSON(http.StatusOK, memos)
+	return c.JSON(http.StatusOK, MemosWithQuery{
+		Memos: memos,
+		Query: query,
+	})
+}
+
+type MemoWithQuery struct {
+	Memo  *Memo  `json:"memo"`
+	Query string `json:"query"`
 }
 
 func getMemoByID(c echo.Context) error {
+	session, err := store.Get(c.Request(), "session")
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get session")
+	}
+
+	iUserID, ok := session.Values["userID"]
+	if !ok {
+		return echo.NewHTTPError(http.StatusUnauthorized, "not logged in")
+	}
+	userID, ok := iUserID.(int)
+	if !ok {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user id")
+	}
+
 	memoID := c.Param("memoID")
 
-	memo, err := getMemo(c.Request().Context(), memoID)
+	memo, query, err := getMemo(c.Request().Context(), memoID, userID)
 	if errors.Is(err, errNoMemo) {
-		return echo.NewHTTPError(http.StatusNotFound, "no memo")
+		return echo.NewHTTPError(http.StatusNotFound, fmt.Sprintf("no memo: %s", query))
 	}
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get memo")
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("failed to get memo(%s): %s", err, query))
 	}
 
-	return c.JSON(http.StatusOK, memo)
+	return c.JSON(http.StatusOK, MemoWithQuery{
+		Memo:  memo,
+		Query: query,
+	})
 }

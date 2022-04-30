@@ -9,7 +9,7 @@
 
     let memos: Memo[];
     if (res.status == 200) {
-      memos = await res.json();
+      memos = (await res.json()).memos;
     } else {
       memos = [];
     }
