@@ -7,7 +7,7 @@
 </script>
 
 <nav>
-  <div class="mdc-typography--headline2 title">Loli Chat</div>
+  <div class="mdc-typography--headline2 title">Generate ORiginal Memo 1</div>
   {#if !user}
     <div style="text-align: right;">
       {#if path !== "login"}
