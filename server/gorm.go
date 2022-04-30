@@ -108,7 +108,8 @@ func getMemos(ctx context.Context, userID int) ([]Memo, string, error) {
 	var memos []Memo
 	db := db.
 		WithContext(ctx).
-		Where("user_id = ?", userID)
+		Where("user_id = ?", userID).
+		Order("created_at desc")
 	query := db.ToSQL(func(db *gorm.DB) *gorm.DB {
 		return db.Find(&memos)
 	})

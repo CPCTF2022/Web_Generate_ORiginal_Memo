@@ -31,6 +31,7 @@
   import type { User } from "../domain/user";
   export let memos: Memo[];
 
+  let memoValues: Memo[] = memos;
   const sendHandler = async (event: any) => {
     const response = await fetch("/api/memos", {
       method: "POST",
@@ -40,9 +41,9 @@
       },
       body: JSON.stringify({ content: event.detail.text }),
     });
-    if (response.status === 200) {
+    if (response.status === 201) {
       const memo: Memo = await response.json();
-      memos = [...memos, memo];
+      memoValues = [memo, ...memoValues];
     }
   };
 
@@ -56,7 +57,7 @@
   <Input on:send={sendHandler} />
 {/if}
 <br />
-{#each memos as memo}
+{#each memoValues as memo}
   <Mess
     memo={memo}
   />
